@@ -1,0 +1,19 @@
+Package: bidsexportr
+Type: Package
+Title: Helps by exporting BIDS structured neuroimaging data
+Version: 0.1.0
+Author: Niklas Wulms
+Maintainer: Niklas Wulms <wulms@uni-muenster.de>
+Description: Contains one function "XXXXX" that starts a user-friendly process to copy BIDS data to another destination.
+    The user can select sessions, sequences and subjects for data export, which is rather sophisticated in the nested BIDS structure.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    dplyr,
+    magrittr,
+    shinyDirectoryInput,
+    stringr,
+    svDialogs,
+    tidyr
+RoxygenNote: 7.2.1

@@ -1,6 +1,6 @@
 # main function ----
 
-wrapper_function <- function(){
+start_export <- function(){
   create_presets()
 
   df_metadata <<- create_bids_metadata()

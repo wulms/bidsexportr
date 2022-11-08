@@ -17,3 +17,5 @@ Imports:
     svDialogs,
     tidyr
 RoxygenNote: 7.2.1
+Remotes: 
+    wleepang/shiny-directory-input

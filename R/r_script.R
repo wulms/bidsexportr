@@ -17,8 +17,10 @@ start_export <- function(){
   copy_files(input = df_bids_data_filter$files_input,
              output = df_bids_data_filter$files_output)
   
-  create_participants_tsv()
   fs::file_copy(df_metadata$input, df_metadata$output)
+  
+  create_participants_tsv()
+  
 }
 
 
@@ -33,9 +35,14 @@ start_export <- function(){
 create_presets <- function(){
   bids_path <<- shinyDirectoryInput::choose.dir(caption = "Choose input directory") %>%
     normalizePath(winslash = "/")
+  
+  print(paste("Your input folder: ", bids_path))
+  
   check_bids_path()
   output_path <<- shinyDirectoryInput::choose.dir(caption = "Choose output directory") %>%
     normalizePath(winslash = "/")
+  cat("\n\n")
+  print(paste("Your output folder: ", output_path))
 }
 
 ## select form ----
@@ -113,21 +120,36 @@ filter_dialog <- function(){
   
   svDialogs::dlg_message(message = "To select multiple options hold the 'Strg/Ctrl key' during selection.",
                          type = "ok")
-  filter_sessions <<- svDialogs::dlg_list(title = "SESSION:",
-                                          choices = unique(df_bids_data$session_ids_short),
-                                          multiple = TRUE)$res
   
-  if(length(filter_sessions) == 0){
-    print("No sessions identified. No valid BIDS set.")
-    stop()
-  } else {
-    df_bids_data_filter <<- df_bids_data_filter %>%
-      dplyr::filter(session_ids_short %in% filter_sessions)
+  
+  
+  if(!is.na(unique(df_bids_data$session_ids_short))){
+    
+    filter_sessions <<- svDialogs::dlg_list(title = "SESSION:",
+                                            choices = unique(df_bids_data$session_ids_short),
+                                            multiple = TRUE)$res
+    
+    print(paste("You selected:", filter_sessions))
+    
+    if(length(filter_sessions) == 0){
+      print("No sessions identified. No valid BIDS set.")
+      stop()
+    } else {
+      df_bids_data_filter <<- df_bids_data_filter %>%
+        dplyr::filter(session_ids_short %in% filter_sessions)
+    }
   }
+  
+  
+  
+  
   
   filter_sequences <<- svDialogs::dlg_list(title = "SEQUENCE:",
                                            choices = unique(df_bids_data$sequence_ids),
                                            multiple = TRUE)$res
+  
+  print(paste("You selected:", filter_sequences))
+  
   
   if(length(filter_sequences) == 0){
     print("No sequences identified. No valid BIDS set.")
@@ -140,6 +162,9 @@ filter_dialog <- function(){
   filter_cohort <<- svDialogs::dlg_input(message = "Enter a regular expression, e.g. '^1' to select only ids beginning with 1")$res %>% 
     stringr::regex()
   
+  print(paste("You selected:", filter_cohort))
+  
+  
   if(length(filter_cohort) == 0){
     print("No regular expression selected. Keeping all data.")
   } else {
@@ -147,14 +172,46 @@ filter_dialog <- function(){
       dplyr::filter(stringr::str_detect(subject_ids_short, filter_cohort))
   }
   
+  
+  svDialogs::dlg_message(message = "Do you want only complete observations per participant, containing ALL selected sequence types? Then select 'Yes' in the next window. 'No' selects also observations with missing data.",
+                         type = "ok")
+  
+  filter_complete <<- svDialogs::dlg_list(title = "Only complete?",
+                                           choices = c("Yes", "No"),
+                                           multiple = TRUE)$res
+  
+  print(paste("You selected:", filter_complete))
+  
+  if(filter_complete == "Yes"){
+    print("Filtering out incomplete sequences")
+    df_bids_data_filter <<- df_bids_data_filter %>%
+      dplyr::group_by(subject_ids_short, session_ids_short) %>%
+      dplyr::mutate(sequence_count = dplyr::n()/2) %>%
+      dplyr::filter(sequence_count == length(filter_sequences)) %>%
+      dplyr::ungroup()
+  } else {
+    print("Nothing changed.")
+  }
+  
+  
   print(df_bids_data_filter)
   
+  print("Data overview:")
+  
   df_bids_data_filter %>%
-    dplyr::filter(type_ids == ".nii.gz") %>%
+    dplyr::select(-subject_ids_short) %>%
+    dplyr::filter(type_ids == ".nii.gz" | type_ids == ".nii") %>%
     dplyr::count(session_ids_short, sequence_ids) %>%
     tidyr::pivot_wider(names_prefix = "session ",
                        names_from = session_ids_short,
-                       values_from = n)
+                       values_from = n) %>%
+    print()
+  
+  if(svDialogs::dlg_list(title = "Start copy process?",
+                      choices = c("Yes", "No"),
+                      multiple = TRUE)$res == "No"){
+    stop("Process stopped by user.")
+  }
 }
 
 #' Checks the filter criterias
@@ -198,12 +255,15 @@ create_participants_tsv <- function(path = output_path,
   tsv_path <- paste0(path, "/participants.tsv")
   print(tsv_path)
   
-  df_bids_data_filter %>% 
-    dplyr::select(subject_ids, session_ids) %>%
-    dplyr::rename(participant_id = subject_ids,
-                  session = session_ids) %>%
-    dplyr::distinct() %>%
-    readr::write_tsv(., file = tsv_path)
+  if(!file.exists(tsv_path)){
+    df_bids_data_filter %>% 
+      dplyr::select(subject_ids, session_ids) %>%
+      dplyr::rename(participant_id = subject_ids,
+                    session = session_ids) %>%
+      dplyr::distinct() %>%
+      readr::write_tsv(., file = tsv_path)
+    
+  }
     
   
 }
@@ -253,7 +313,7 @@ check_bids_path <- function(path = bids_path){
 #'
 #' @examples
 create_bids_metadata <- function(path = bids_path){
-  df_bids_metadata <- tibble::tibble(input = list.files(path, pattern = "CHANGES|README|json",
+  df_bids_metadata <- tibble::tibble(input = list.files(path, pattern = "CHANGES|README|json|tsv",
                                                 recursive = FALSE,
                                                 full.names = TRUE,
                                                 include.dirs = TRUE)) %>%
@@ -295,8 +355,8 @@ create_bids_df <- function(path = bids_path, output = output_path){
   
   df_files <- tibble::tibble(files_input = files) %>%
     dplyr::mutate(files_output = stringr::str_replace(files_input, path, output)) %>%
-    dplyr::mutate(files_short = stringr::str_extract(files, "sub-[:alnum:]+_ses-[:alnum:]+_.*$")) %>%
-    dplyr::mutate(subject_ids = stringr::str_extract(files_short, "sub-[:alnum:]+(?=_ses-[:alnum:]+_.*$)"),
+    dplyr::mutate(files_short = stringr::str_extract(files, "sub-[:alnum:]+_ses-[:alnum:]+_.*$|sub-[:alnum:]+_.*$")) %>%
+    dplyr::mutate(subject_ids = stringr::str_extract(files_short, "sub-[:alnum:]+(?=_.*$)"),
                   subject_ids_short = stringr::str_remove(subject_ids, "sub-"),
                   
                   session_ids = stringr::str_remove(files_short, subject_ids) %>%
@@ -304,19 +364,22 @@ create_bids_df <- function(path = bids_path, output = output_path){
                     stringr::str_extract("ses-[:alnum:]+(?=.*$)"),
                   session_ids_short = stringr::str_remove(session_ids, "ses-"),
                   
-                  type_ids = stringr::str_extract(files_short, "\\.(nii\\.gz|json|bval|bvec)"),
+                  type_ids = stringr::str_extract(files_short, "\\.(nii\\.gz|nii|json|bval|bvec)"),
                   
-                  sequence_ids = stringr::str_extract(files_short, "sub-[:alnum:]+_ses-[:alnum:]+_.*$") %>%
-                    stringr::str_remove(paste0(subject_ids, "_", session_ids, "_")) %>%
+                  sequence_ids = stringr::str_extract(files_short, "(sub-[:alnum:]+_ses-[:alnum:]+_|sub-[:alnum:]+_).*$") %>%
+                    stringr::str_remove(paste0(subject_ids, "_")) %>%
+                    stringr::str_remove(paste0(session_ids, "_")) %>%
                     stringr::str_remove(type_ids)
     ) %>%
-    dplyr::filter(!is.na(files_short))
+    dplyr::filter(!is.na(files_short)) %>%
+    dplyr::filter(!is.na(sequence_ids)) %>%
+    dplyr::filter(!stringr::str_detect(files_input, "/derivatives/"))
   
   df_files %>%
     dplyr::count(session_ids_short, sequence_ids)  %>%
     tidyr::pivot_wider(names_prefix = "session ",
                        names_from = session_ids_short,
-                       values_from = n)
+                       values_from = n) %>% print()
   
   
   return(df_files)

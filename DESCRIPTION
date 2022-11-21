@@ -12,6 +12,7 @@ LazyData: true
 Imports: 
     dplyr,
     magrittr,
+    readr,
     shinyDirectoryInput,
     stringr,
     svDialogs,

@@ -178,7 +178,7 @@ filter_dialog <- function(){
   
   filter_complete <<- svDialogs::dlg_list(title = "Only complete?",
                                            choices = c("Yes", "No"),
-                                           multiple = TRUE)$res
+                                           multiple = FALSE)$res
   
   print(paste("You selected:", filter_complete))
   

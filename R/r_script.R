@@ -184,11 +184,25 @@ filter_dialog <- function(){
   
   if(filter_complete == "Yes"){
     print("Filtering out incomplete sequences")
+    # df_bids_data_filter <<- df_bids_data_filter %>%
+    #   dplyr::group_by(subject_ids_short, session_ids_short) %>%
+    #   dplyr::mutate(sequence_count = dplyr::n()/2) %>%
+    #   dplyr::filter(sequence_count == length(filter_sequences)) %>%
+    #   dplyr::ungroup()
+    
+    # new
     df_bids_data_filter <<- df_bids_data_filter %>%
-      dplyr::group_by(subject_ids_short, session_ids_short) %>%
-      dplyr::mutate(sequence_count = dplyr::n()/2) %>%
-      dplyr::filter(sequence_count == length(filter_sequences)) %>%
-      dplyr::ungroup()
+      dplyr::group_by(subject_ids_short, session_ids_short, type_ids) %>% 
+      dplyr::mutate(sequence_count = dplyr::n()) %>% 
+      dplyr::ungroup() %>% 
+      dplyr::group_by(session_ids) %>% 
+      dplyr::mutate(max = max(sequence_count), 
+                    export = dplyr::case_when(sequence_count == max ~ TRUE, 
+                                              stringr::str_detect(type_ids, "\\.(bval|bvec)") ~ TRUE)) %>% 
+      dplyr::filter(export == TRUE) %>% 
+      dplyr::arrange(subject_ids, session_ids)
+    
+    
   } else {
     print("Nothing changed.")
   }

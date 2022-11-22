@@ -123,7 +123,7 @@ filter_dialog <- function(){
   
   
   
-  if(!is.na(unique(df_bids_data$session_ids_short))){
+  if(unique(df_bids_data$session_ids_short) %>% length() > 1 ){
     
     filter_sessions <<- svDialogs::dlg_list(title = "SESSION:",
                                             choices = unique(df_bids_data$session_ids_short),
@@ -209,7 +209,7 @@ filter_dialog <- function(){
   
   if(svDialogs::dlg_list(title = "Start copy process?",
                       choices = c("Yes", "No"),
-                      multiple = TRUE)$res == "No"){
+                      multiple = FALSE)$res == "No"){
     stop("Process stopped by user.")
   }
 }

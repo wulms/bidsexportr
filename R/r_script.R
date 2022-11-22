@@ -376,6 +376,7 @@ create_bids_df <- function(path = bids_path, output = output_path){
     dplyr::filter(!stringr::str_detect(files_input, "/derivatives/"))
   
   df_files %>%
+    dplyr::filter(stringr::str_detect(type_ids, "nii")) %>%
     dplyr::count(session_ids_short, sequence_ids)  %>%
     tidyr::pivot_wider(names_prefix = "session ",
                        names_from = session_ids_short,

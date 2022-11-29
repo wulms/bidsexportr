@@ -70,6 +70,26 @@ OPTIONAL: You are able to provide an optional CSV file with headers
 - subject-IDs
 - subject-IDs (1st column) and session-IDs (2nd column)
 
+| subjectid |
+|-----------|
+| 30750     |
+| 10353     |
+| 20226     |
+| 15876     |
+| 20223     |
+
+Example 1: CSV with only subjectids
+
+| subjectid | sessionid |
+|-----------|-----------|
+| 30750     | s0        |
+| 30232     | s0        |
+| 30750     | s2        |
+| 30232     | s4        |
+| 30232     | s6        |
+
+Example 2: CSV with subject-IDs and session-IDs
+
 ![input](img/2_optional_csv.png)
 
 A messagebox appears to inform the user about the selection of multiple

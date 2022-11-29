@@ -213,6 +213,7 @@ filter_dialog <- function(){
   print("Data overview:")
   
   df_bids_data_filter %>%
+    dplyr::ungroup() %>%
     dplyr::select(-subject_ids_short) %>%
     dplyr::filter(type_ids == ".nii.gz" | type_ids == ".nii") %>%
     dplyr::count(session_ids_short, sequence_ids) %>%

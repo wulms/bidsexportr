@@ -13,8 +13,12 @@ data.
 
 Features:
 
-Basic: - selection of input folder (BIDS) - selection of output folder -
-selection of sequences - selection of session
+Basic:
+
+- selection of input folder (BIDS)
+- selection of output folder
+- selection of sequences
+- selection of session
 
 Advanced:
 
